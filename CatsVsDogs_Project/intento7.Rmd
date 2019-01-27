@@ -1,0 +1,293 @@
+---
+title: "Gatos vs Perros: codigo para empezar"
+output: html_notebook
+---
+
+```{r}
+library(keras)
+library(tidyverse)
+```
+
+
+```{r}
+
+# Organize dataset --------------------------------------------------------
+#options(warn = -1)
+
+# Ths input
+#original_dataset_dir <- "data/kaggle_cats_dogs/original/"
+
+
+# Create new organized dataset directory ----------------------------------
+
+# ****************** ATENCION *********************************
+
+# *********** MODIFICAR EL DIRECTORIO, PONER EN LA MISMA CARPETA LAS 
+# *********** CARPETAS DE FOTOS Y EL CODIGO RMD 
+
+base_dir <- "/Users/ivonnepineda/Desktop/ProyectoADM"
+#dir.create(base_dir)
+
+# ****************************************************************************
+# ****************************************************************************
+
+#model_dir <- paste0(base_dir, "/Users/ivonnepineda/Desktop/ProyectoADM")
+#dir.create(model_dir)
+
+train_dir <- file.path(base_dir, "train")
+#dir.create(train_dir)
+
+validation_dir <- file.path(base_dir, "validation")
+#dir.create(validation_dir)
+
+test_dir <- file.path(base_dir, "test")
+#dir.create(test_dir)
+
+#train_cats_dir <- file.path(train_dir, "gato")
+#dir.create(train_cats_dir)
+
+#train_dogs_dir <- file.path(train_dir, "perro")
+#dir.create(train_dogs_dir)
+
+#validation_cats_dir <- file.path(validation_dir, "gato")
+#dir.create(validation_cats_dir)
+
+#validation_dogs_dir <- file.path(validation_dir, "perro")
+#dir.create(validation_dogs_dir)
+
+#test_cats_dir <- file.path(test_dir, "gato")
+#dir.create(test_cats_dir)
+
+#test_dogs_dir <- file.path(test_dir, "perro")
+#dir.create(test_dogs_dir)
+
+# Copying files from original dataset to newly created directory
+#fnames <- paste0("cat.", 1:6835, ".jpg")
+#dum <- file.copy(
+#  file.path(original_dataset_dir, fnames),
+# file.path(train_cats_dir)
+#)
+
+#fnames <- paste0("cat.", 1:2278, ".jpg")
+#dum <- file.copy(
+#  file.path(original_dataset_dir, fnames),
+#  file.path(validation_cats_dir)
+#)
+
+#fnames <- paste0("cat.", 1501:2000, ".jpg")
+#dum <- file.copy(
+#  file.path(original_dataset_dir, fnames),
+#  file.path(test_cats_dir)
+#)
+
+#fnames <- paste0("dog.", 1:1000, ".jpg")
+#dum <- file.copy(
+#  file.path(original_dataset_dir, fnames),
+#  file.path(train_dogs_dir)
+#)
+
+#fnames <- paste0("dog.", 1001:1500, ".jpg")
+#dum <- file.copy(
+#  file.path(original_dataset_dir, fnames),
+#  file.path(validation_dogs_dir)
+#)
+
+#fnames <- paste0("dog.", 1501:2000, ".jpg")
+#dum <- file.copy(
+#  file.path(original_dataset_dir, fnames),
+#  file.path(test_dogs_dir)
+#)
+
+#options(warn = 0)
+```
+
+
+```{r}
+# Making model ------------------------------------------------------------
+
+
+conv_base <- application_vgg16(
+  weights = "imagenet",
+  include_top = FALSE,
+  input_shape = c(150, 150, 3)
+)
+```
+
+```{r}
+model <- keras_model_sequential() %>%
+  conv_base() %>%
+      layer_conv_2d(filter = 16, kernel_size = c(3,3), 
+                  input_shape = c(150, 150, 1),
+                  activation = "relu") %>%
+    layer_max_pooling_2d(pool_size = c(2,2)) %>%
+    layer_dropout(0.2) %>% 
+  layer_flatten() %>%
+  layer_dense(units = 256, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+summary(model)
+
+length(model$trainable_weights)
+freeze_weights(conv_base)
+length(model$trainable_weights)
+```
+
+```{r}
+# Train model -------------------------------------------------------------
+
+train_datagen <- image_data_generator(
+  rescale = 1 / 255,
+  rotation_range = 40,
+  width_shift_range = 0.2,
+  height_shift_range = 0.2,
+  shear_range = 0.2,
+  zoom_range = 0.2,
+  horizontal_flip = TRUE,
+  fill_mode = "nearest"
+)
+
+# Note that the validation data shouldn't be augmented!
+test_datagen <- image_data_generator(rescale = 1 / 255)
+```
+
+```{r}
+train_generator <- flow_images_from_directory(
+  train_dir, # Target directory
+  train_datagen, # Data generator
+  target_size = c(150, 150), # Resizes all images to 150 ?? 150
+  batch_size = 20,
+  class_mode = "binary", # binary_crossentropy loss for binary labels
+  classes = c("perro", "gato"),
+  shuffle = TRUE
+  )
+```
+
+
+```{r}
+validation_generator <- flow_images_from_directory(
+  validation_dir,
+  test_datagen,
+  target_size = c(150, 150),
+  batch_size = 20,
+  class_mode = "binary",
+  classes = c("perro", "gato"),
+  shuffle = TRUE
+  )
+```
+```{r}
+print("table entrena =")
+table_entrena<-table(train_generator$classes)
+table_entrena
+print("table valida =")
+table_valida<-table(validation_generator$classes)
+table_valida
+
+n_entrena <- train_generator$n
+n_valida <- validation_generator$n
+indices <- train_generator$class_indices
+print("n_entrena =")
+n_entrena
+print("n_valida =")
+n_valida
+print("indices =")
+indices
+```
+
+
+```{r}
+# Fine tuning -------------------------------------------------------------
+
+unfreeze_weights(conv_base, from = "block3_conv1")
+```
+
+```{r}
+# Compile model -----------------------------------------------------------
+
+model %>% compile(
+  loss = "binary_crossentropy",
+  optimizer = optimizer_adam(lr = 2e-5),
+  metrics = c("accuracy")
+)
+
+```
+
+
+```{r}
+# Evaluate  by epochs  ---------------------------------------------------------------
+
+# ESTE PROCESO TARDARA DEPENDIENDO DE LA COMPUTADORA
+
+#  # This create plots accuracy of various epochs (slow)
+history <- model %>% fit_generator(
+  train_generator,
+  steps_per_epoch = 20, # Original:100    IR MODIFICANDO DUPLICANDO EL VALOR
+  epochs = 5, # Original:100             IR MODIFICANDO DUPLICANDO EL VALOR
+  validation_data = validation_generator,
+  validation_steps = 10 # Original:50     IR MODIFICANDO DUPLICANDO EL VALOR
+)
+```
+
+```{r}
+# Plot --------------------------------------------------------------------
+# plot(history)
+```
+
+```{r}
+test_generator <- flow_images_from_directory(
+  test_dir, # Target directory
+  test_datagen, # Data generator
+  target_size = c(150, 150), # Resizes all images to 150 ?? 150
+  batch_size = 1,
+  class_mode = "binary", # binary_crossentropy loss for binary labels
+  shuffle = FALSE
+  )
+```
+
+
+```{r}
+model %>% save_model_hdf5("modelo_VGG_ary7.h5")
+```
+
+```{r}
+modelo <- load_model_hdf5("modelo_VGG_ary7.h5")
+
+```
+
+```{r}
+scoreTrain <- modelo %>% evaluate_generator(train_generator, steps = 1)
+print("scoreTrain =")
+scoreTrain
+```
+
+```{r}
+scoreValida <- modelo %>% evaluate_generator(validation_generator, steps = 1)
+print("scoreValida =")
+scoreValida
+```
+
+```{r}
+# ESTE PROCESO TARDARA DEPENDIENDO DE LA COMPUTADORA
+predict <- predict_generator(modelo, test_generator, steps = 6887, verbose = 1)
+
+```
+
+```{r}
+tabla <- as.data.frame(as.data.frame(predict) %>% mutate(indice = seq(1,6887)) %>% mutate(probabilidad = (predict)) %>% select(indice,probabilidad))
+tabla
+
+write_csv(tabla,"intento7_ivonne.csv")
+
+# VERIFICAR CSV CON ALGUNAS IMAGENES (CERCANO A 1 GATO, O PERRO) Y SUBIR A LA PLATAFORMA
+
+```
+
+```{r}
+# EJECUTAR COMO OPCIONAL, ESTADO BETA
+# ESTE PROCESO TARDARA DEPENDIENDO DE LA COMPUTADORA
+
+#scoreTest <- modelo %>% evaluate_generator(test_generator, steps = 6887)
+#print("scoreTest =")
+#scoreTest
+
+```
+
