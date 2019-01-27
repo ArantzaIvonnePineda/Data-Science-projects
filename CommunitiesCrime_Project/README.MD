@@ -1,0 +1,3 @@
+CommunitiesCrime_Project:
+
+This project was an analysis based on the dataset named 'Communities and Crime Unnormalized Data Set' which combines census data published by the US Census with crime reports published by the FBI. The goal of the project was to explain the murder rates by state and then by census-designated regions. The methods applied were hierarchical and regression modeling through different probability distributions considering possible effects by different covariables. Some tools used were command line in Unix, R, Stata, Stan Models, Regression Models and certain additional statistical techniques. 
