@@ -1,0 +1,5 @@
+## Walmart_Project:
+
+The case under study was classifing shopping trips using market basket analysis. The goal was to make the most accurate classification of customer trips using only a transactional dataset of purchased items. The tools used were multiple since it was not an easy problem to tackle. Light virtual machines were implemented using Docker, data cleaning had to be done with the command line and query languages, several machine learning approaches (GBoost, Logistic Regression, Extra Tree Classifier and Random Forest) were implemented in Python and high-level creativity was required to come up with ideas for feature engineering. 
+
+The Logistic Regression and GBoost resulted as the better methods. The outcome of the competition was the best ranking among fellow competitors in the Data Mining class and a competitive score in the public contest.
